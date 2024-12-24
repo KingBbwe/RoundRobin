@@ -1,1 +1,23 @@
-
+{
+  "canisters": {
+    "equalizing_round_robin": {
+      "main": "src/equalizing_round_robin/main.mo",
+      "type": "motoko",
+      "dependencies": []
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "dfx": "0.15.0",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}
