@@ -1,0 +1,42 @@
+name: Deploy Canisters
+
+on:
+  push:
+    branches:
+      - main # Adjust to your deployment branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Step 2: Install DFINITY SDK (dfx) Non-Interactively
+      - name: Install DFINITY SDK (dfx)
+        env:
+          DFX_VERSION: "0.13.1" # Replace with the required version
+          NONINTERACTIVE: "1"   # Skips any prompts or terminal interaction
+        run: |
+          set -eu  # Exit immediately if a command exits with a non-zero status
+          mkdir -p "$HOME/bin"
+          curl -fsSL https://internetcomputer.org/install.sh | bash -s -- --skip-path-munge --non-interactive || true
+          echo "$HOME/.local/share/dfx/bin" >> $GITHUB_PATH
+          "$HOME/.local/share/dfx/bin/dfx" --version || true
+
+      # Step 3: Authenticate with Identity
+      - name: Authenticate with Identity
+        run: |
+          echo "${{ secrets.DFX_IDENTITY }}" > identity.pem
+          "$HOME/.local/share/dfx/bin/dfx" identity import --force github_identity < identity.pem || true
+          "$HOME/.local/share/dfx/bin/dfx" identity use github_identity || true
+        env:
+          DFX_IDENTITY: ${{ secrets.DFX_IDENTITY }}
+
+      # Step 4: Build and Deploy Canisters
+      - name: Build and Deploy Canisters
+        run: |
+          "$HOME/.local/share/dfx/bin/dfx" build || true
+          "$HOME/.local/share/dfx/bin/dfx" deploy --network ic || true
