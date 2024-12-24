@@ -1,1 +1,31 @@
-
+{
+  "name": "equalizing-round-robin",
+  "version": "1.0.0",
+  "description": "Equalizing Round Robin Contract for Internet Computer",
+  "keywords": [
+    "Internet Computer",
+    "Motoko",
+    "Smart Contract",
+    "DFX"
+  ],
+  "scripts": {
+    "start": "dfx start --background",
+    "stop": "dfx stop",
+    "clean": "dfx stop && rm -rf .dfx",
+    "deploy:local": "dfx deploy equalizing_round_robin",
+    "deploy:ic": "dfx deploy --network ic equalizing_round_robin",
+    "test": "mo-test"
+  },
+  "dependencies": {
+    "@dfinity/agent": "^0.20.0",
+    "@dfinity/candid": "^0.20.0",
+    "@dfinity/principal": "^0.20.0"
+  },
+  "devDependencies": {
+    "mo-dev": "^0.8.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.0"
+  }
+}
