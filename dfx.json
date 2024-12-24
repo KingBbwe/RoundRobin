@@ -4,6 +4,14 @@
       "main": "src/equalizing_round_robin/main.mo",
       "type": "motoko",
       "dependencies": []
+    },
+    "equalizing_round_robin_assets": {
+      "dependencies": ["equalizing_round_robin"],
+      "frontend": {
+        "entrypoint": "src/equalizing_round_robin_assets/src/index.html"
+      },
+      "source": ["src/equalizing_round_robin_assets/assets", "dist/equalizing_round_robin_assets/"],
+      "type": "assets"
     }
   },
   "defaults": {
