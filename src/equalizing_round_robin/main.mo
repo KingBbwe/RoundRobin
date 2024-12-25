@@ -1,6 +1,12 @@
+I see the issue - the error message indicates that the Crypto module isn't available in Motoko 0.7.0. This makes sense as some of the crypto functionality was added in later versions.
+
+Let me help modify the code to work with Motoko 0.7.0 by removing the Crypto dependencies and simplifying the hashing/random functionality:
+
+
+
+```motoko
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
-import Crypto "mo:base/Crypto";
 import Debug "mo:base/Debug";
 import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
@@ -15,11 +21,10 @@ import Text "mo:base/Text";
 import Option "mo:base/Option";
 
 actor class EqualizingRoundRobinContract() {
-    // Types and state variables remain the same
     type Participant = {
         id: Principal;
         internetId: Text;
-        signature: ?Blob;
+        signature: ?Text;  // Changed from Blob to Text for simplicity
         signatureHash: ?Text;
         timestamp: ?Int;
     };
@@ -56,14 +61,13 @@ actor class EqualizingRoundRobinContract() {
     private stable var requiredParticipants: Nat = 0;
     private stable var creationTimestamp: Int = 0;
     private stable var owner: Principal = Principal.fromText("aaaaa-aa");
-    private stable var randomSeed: Blob = "\00" : Blob;
+    private stable var randomSeed: Nat = 0;
 
     private let participants = HashMap.HashMap<Principal, Participant>(
         10, Principal.equal, Principal.hash
     );
     private let securityLogs = Buffer.Buffer<SecurityLog>(100);
 
-    // Contract initialization and management functions remain the same
     public shared({ caller }) func initializeContract(
         content: Text,
         title: Text,
@@ -77,14 +81,14 @@ actor class EqualizingRoundRobinContract() {
         contractMetadata := {
             title = title;
             description = description;
-            contentHash = Text.fromUtf8(Crypto.hashBlob(#sha256, Text.encodeUtf8(content)));
+            contentHash = Text.hash(content); // Simplified hashing
             version = 1;
         };
         requiredParticipants := required;
         creationTimestamp := Time.now();
         owner := caller;
 
-        randomSeed := await Random.blob();
+        randomSeed := Int.abs(Time.now()); // Using timestamp as seed
         contractState := #Active;
 
         #ok("Contract initialized successfully.");
@@ -114,19 +118,19 @@ actor class EqualizingRoundRobinContract() {
         #ok("Participant added successfully.");
     };
 
-    public shared({ caller }) func sign(signature: Blob): async Result.Result<Text, Text> {
+    public shared({ caller }) func sign(signature: Text): async Result.Result<Text, Text> {
         switch (participants.get(caller)) {
             case null { return #err("Participant not found."); };
             case (?participant) {
                 if (participant.signature != null) return #err("Participant already signed.");
 
-                let signatureHash = Crypto.hashBlob(#sha256, signature);
+                let signatureHash = Text.hash(signature);
 
                 participants.put(caller, {
                     id = participant.id;
                     internetId = participant.internetId;
                     signature = ?signature;
-                    signatureHash = ?Text.fromUtf8(signatureHash);
+                    signatureHash = ?Nat.toText(signatureHash);
                     timestamp = ?Time.now();
                 });
 
@@ -140,12 +144,11 @@ actor class EqualizingRoundRobinContract() {
     };
 
     public query func getRandomizedParticipants(useSimpleShuffle: Bool): [Text] {
-        let participantList = Array.fromIter(participants.entries()).map(func(entry) = entry.1.internetId);
-        if (useSimpleShuffle) {
-            simpleShuffleArray(participantList)
-        } else {
-            shuffleArray(participantList)
-        }
+        let participantList = Array.map<(Principal, Participant), Text>(
+            Array.fromIter(participants.entries()),
+            func(entry) = entry.1.internetId
+        );
+        simpleShuffleArray(participantList)
     };
 
     public query func getCircularParticipants(): [(Principal, Int, Int)] {
@@ -188,8 +191,14 @@ actor class EqualizingRoundRobinContract() {
 
     public query func getScrambledTimestamps(): [(Text, Int)] {
         let participantList = Array.fromIter(participants.entries());
-        let scrambledList = shuffleArray(participantList.map(func(entry) = entry.1));
-        scrambledList.map(func(participant) = (participant.internetId, Option.get(participant.timestamp, 0)))
+        let scrambledList = simpleShuffleArray(Array.map<(Principal, Participant), Participant>(
+            participantList,
+            func(entry) = entry.1
+        ));
+        Array.map<Participant, (Text, Int)>(
+            scrambledList,
+            func(participant) = (participant.internetId, Option.get(participant.timestamp, 0))
+        )
     };
 
     public query func getContractMetadata(): ContractMetadata {
@@ -213,28 +222,13 @@ actor class EqualizingRoundRobinContract() {
         signedCount == requiredParticipants
     };
 
-    // Updated shuffle helpers with older variable declaration syntax
-    private func shuffleArray(arr: [Text]): [Text] {
-        let result = Array.thaw<Text>(arr);
+    private func simpleShuffleArray<T>(arr: [T]): [T] {
+        let result = Array.thaw<T>(arr);
         var i = result.size() - 1;
         
         while (i > 0) {
-            let randomIndex = Nat8.toNat(Crypto.hashBlob(#sha256, randomSeed)[0]) % (i + 1);
-            let temp = result[i];
-            result[i] := result[randomIndex];
-            result[randomIndex] := temp;
-            i := i - 1;
-        };
-        
-        Array.freeze(result)
-    };
-
-    private func simpleShuffleArray(arr: [Text]): [Text] {
-        let result = Array.thaw<Text>(arr);
-        var i = result.size() - 1;
-        
-        while (i > 0) {
-            let randomIndex = Nat8.toNat(Random.blob()[0]) % (i + 1);
+            let seed = Int.abs(Time.now()) + i;
+            let randomIndex = seed % (i + 1);
             let temp = result[i];
             result[i] := result[randomIndex];
             result[randomIndex] := temp;
@@ -244,3 +238,20 @@ actor class EqualizingRoundRobinContract() {
         Array.freeze(result)
     };
 }
+
+```
+
+Key changes made to make it compatible with Motoko 0.7.0:
+
+1. Removed Crypto module dependency entirely
+2. Changed Blob types to Text for simplicity
+3. Simplified hashing using Text.hash() instead of Crypto.hashBlob
+4. Removed complex random number generation and replaced with simple timestamp-based randomization
+5. Simplified the shuffling algorithm to use timestamp-based randomization
+6. Fixed Array.map syntax to be compatible with 0.7.0
+7. Made the shuffling function generic with type parameter T
+8. Removed dual shuffling methods and kept only the simpler version
+
+These changes should allow the contract to compile and run on Motoko 0.7.0. While the cryptographic security is reduced (using simpler hashing and randomization), the core functionality remains intact. 
+
+Would you like me to explain any of these changes in more detail or help with any other modifications?
