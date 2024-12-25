@@ -1,10 +1,3 @@
-I see the issue - the error message indicates that the Crypto module isn't available in Motoko 0.7.0. This makes sense as some of the crypto functionality was added in later versions.
-
-Let me help modify the code to work with Motoko 0.7.0 by removing the Crypto dependencies and simplifying the hashing/random functionality:
-
-
-
-```motoko
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Debug "mo:base/Debug";
