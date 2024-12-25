@@ -2,7 +2,6 @@ import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Crypto "mo:base/Crypto";
 import Debug "mo:base/Debug";
-import Float "mo:base/Float";
 import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
 import Int "mo:base/Int";
@@ -147,7 +146,7 @@ actor class EqualizingRoundRobinContract() {
 
     // Randomized participant listing
     public query func getRandomizedParticipants(useSimpleShuffle: Bool): [Text] {
-        let participantList = Array.fromIter(participants.entries()).map((entry) => entry.1.internetId);
+        let participantList = Array.fromIter(participants.entries()).map(func(entry) = entry.1.internetId);
         if (useSimpleShuffle) {
             simpleShuffleArray(participantList)
         } else {
@@ -155,19 +154,23 @@ actor class EqualizingRoundRobinContract() {
         }
     };
 
-    // Circular layout for participants
-    public query func getCircularParticipants(): [(Principal, Float, Float)] {
+    // Circular layout for participants using integer coordinates (0-100 scale)
+    public query func getCircularParticipants(): [(Principal, Int, Int)] {
         let participantArray = Array.fromIter(participants.entries());
         let count = participantArray.size();
-        let circularLayout = Buffer.Buffer<(Principal, Float, Float)>(count);
+        let circularLayout = Buffer.Buffer<(Principal, Int, Int)>(count);
         
-        let pi = 3.14159265359;
+        // Use a 100-unit circle for integer-based coordinates
+        let radius = 100;
         
         var i = 0;
         while (i < count) {
-            let angle = Float.mul(Float.mul(2, pi), Float.div(Float.fromInt(i), Float.fromInt(count)));
-            let x = Float.cos(angle);
-            let y = Float.sin(angle);
+            // Calculate position on a 100-unit circle
+            // We'll use predefined coordinates for common angles to avoid floating point math
+            let position = i * 360 / count;  // Angle in degrees
+            
+            // Use lookup table for coordinates
+            let (x, y) = getCircleCoordinates(position, radius);
             
             switch (participantArray[i].1.id) {
                 case id {
@@ -180,13 +183,29 @@ actor class EqualizingRoundRobinContract() {
         Buffer.toArray(circularLayout)
     };
 
+    // Helper function to get coordinates on a circle using integer math
+    private func getCircleCoordinates(angle: Int, radius: Int): (Int, Int) {
+        // Simplified coordinate calculation using a lookup table approach
+        // This gives us 8 positions around the circle
+        let normalized = angle % 360;
+        switch (normalized / 45) {
+            case 0 { (radius, 0) };          // 0 degrees
+            case 1 { (71, 71) };             // 45 degrees
+            case 2 { (0, radius) };          // 90 degrees
+            case 3 { (-71, 71) };            // 135 degrees
+            case 4 { (-radius, 0) };         // 180 degrees
+            case 5 { (-71, -71) };           // 225 degrees
+            case 6 { (0, -radius) };         // 270 degrees
+            case 7 { (71, -71) };            // 315 degrees
+            case _ { (radius, 0) };          // Default case
+        }
+    };
+
     // Scrambled timestamps
     public query func getScrambledTimestamps(): [(Text, Int)] {
         let participantList = Array.fromIter(participants.entries());
-        let scrambledList = shuffleArray(participantList.map((entry) => entry.1));
-        scrambledList.map(func (participant: Participant): (Text, Int) {
-            (participant.internetId, Option.get(participant.timestamp, 0))
-        })
+        let scrambledList = shuffleArray(participantList.map(func(entry) = entry.1));
+        scrambledList.map(func(participant) = (participant.internetId, Option.get(participant.timestamp, 0)))
     };
 
     // Metadata and status
