@@ -43,11 +43,11 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx'],
     fallback: {
-      assert: require.resolve('assert/'),
-      buffer: require.resolve('buffer/'),
-      events: require.resolve('events/'),
-      stream: require.resolve('stream-browserify/'),
-      util: require.resolve('util/'),
+      assert: require.resolve('assert'),
+      buffer: require.resolve('buffer'),
+      events: require.resolve('events'),
+      stream: require.resolve('stream-browserify'),
+      util: require.resolve('util'),
     },
   },
   output: {
@@ -79,12 +79,13 @@ module.exports = {
       chunks: ['index'],
     }),
     new webpack.EnvironmentPlugin({
-      NODE_ENV: 'development',
-      EQUALIZING_ROUND_ROBIN_CANISTER_ID: canisters['equalizing_round_robin']?.[process.env.DFX_NETWORK || 'local'],
+      NODE_ENV: process.env.NODE_ENV || 'development',
+      DFX_NETWORK: process.env.DFX_NETWORK || 'local',
+      EQUALIZING_ROUND_ROBIN_CANISTER_ID: canisters?.equalizing_round_robin?.[process.env.DFX_NETWORK || 'local'],
     }),
     new webpack.ProvidePlugin({
-      Buffer: [require.resolve('buffer/'), 'Buffer'],
-      process: require.resolve('process/browser'),
+      Buffer: ['buffer', 'Buffer'],
+      process: 'process/browser',
     }),
   ],
   devServer: {
@@ -98,7 +99,9 @@ module.exports = {
       },
     },
     hot: true,
-    contentBase: path.resolve(__dirname, './src/equalizing_round_robin_assets'),
-    watchContentBase: true,
+    static: {
+      directory: path.resolve(__dirname, './src/equalizing_round_robin_assets'),
+    },
+    watchFiles: ['src/**/*.html'],
   },
 };
