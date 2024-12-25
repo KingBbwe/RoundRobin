@@ -14,42 +14,78 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Install DFINITY SDK (dfx) Non-Interactively
-      - name: Install DFINITY SDK (dfx)
-        env:
-          DFX_VERSION: "0.13.1" # Replace with the required version
-          NONINTERACTIVE: "1"   # Skips any prompts or terminal interaction
-        run: |
-          set -eu  # Exit immediately if a command exits with a non-zero status
-          mkdir -p "$HOME/bin"
-          curl -fsSL https://internetcomputer.org/install.sh | bash -s -- --skip-path-munge --non-interactive || true
-          echo "$HOME/.local/share/dfx/bin" >> $GITHUB_PATH
-          "$HOME/.local/share/dfx/bin/dfx" --version || true
+      # Step 2: Install DFINITY SDK (dfx) using setup-dfx action
+      - name: Install dfx
+        uses: dfinity/setup-dfx@main
+        with:
+          dfx-version: "0.14.2" # Specify the version you want, or use "latest"
 
-      # Step 3: Authenticate with Identity
-      - name: Authenticate with Identity
+      # Step 3: Authenticate with Existing Identity
+      - name: Authenticate with Existing Identity
         run: |
           echo "${{ secrets.DFX_IDENTITY }}" > identity.pem
-          "$HOME/.local/share/dfx/bin/dfx" identity import --force github_identity < identity.pem || true
-          "$HOME/.local/share/dfx/bin/dfx" identity use github_identity || true
+          dfx identity import --force github_identity < identity.pem || true
+          dfx identity use github_identity || true
         env:
           DFX_IDENTITY: ${{ secrets.DFX_IDENTITY }}
 
-      # Step 4: Build and Deploy Canisters
+      # Step 4: Configure Wallet (replace <wallet_id> with your actual wallet ID)
+      - name: Configure Wallet
+        run: |
+          dfx identity set-wallet <opyr4-skhvh-gls2k-m2khd-peng6-uye6p-qdade-dlbe5-76jlr-cwdnm-uqe> --network ic || true  # Replace <wallet_id> with your actual wallet ID
+
+      # Step 5: Create Canisters
+      - name: Create Canisters
+        run: |
+          dfx canister create game_coordinator || true
+          dfx canister create crystal_bank || true
+          dfx canister create game_authenticator || true
+          dfx canister create hybrid_wallet || true
+          dfx canister create liquidity_pool || true
+          dfx canister create macro_manager || true
+          dfx canister create market_interaction || true
+          dfx canister create nft_types || true
+          dfx canister create user_types || true
+
+      # Step 6: Build and Deploy Canisters
       - name: Build and Deploy Canisters
         run: |
-          "$HOME/.local/share/dfx/bin/dfx" build || true
-          "$HOME/.local/share/dfx/bin/dfx" deploy --network ic || true
+          dfx build || true
+          dfx deploy --network ic || true
 
-      # Step 5: Retrieve Canister IDs and Save to File
+      # Step 7: Retrieve Canister IDs and Save to File
       - name: Retrieve Canister IDs
         run: |
-          "$HOME/.local/share/dfx/bin/dfx" canister id > canister_ids.txt || true
-          cat canister_ids.txt  # Display canister IDs in logs
+          echo "Game Coordinator ID:" > canister_ids.txt 
+          dfx canister id game_coordinator >> canister_ids.txt || true
 
-      # Step 6: Upload Canister IDs as an Artifact (optional)
+          echo "Crystal Bank ID:" >> canister_ids.txt 
+          dfx canister id crystal_bank >> canister_ids.txt || true
+
+          echo "Game Authenticator ID:" >> canister_ids.txt 
+          dfx canister id game_authenticator >> canister_ids.txt || true
+
+          echo "Hybrid Wallet ID:" >> canister_ids.txt 
+          dfx canister id hybrid_wallet >> canister_ids.txt || true
+
+          echo "Liquidity Pool ID:" >> canister_ids.txt 
+          dfx canister id liquidity_pool >> canister_ids.txt || true
+
+          echo "Macro Manager ID:" >> canister_ids.txt 
+          dfx canister id macro_manager >> canister_ids.txt || true
+
+          echo "Market Interaction ID:" >> canister_ids.txt 
+          dfx canister id market_interaction >> canister_ids.txt || true
+
+          echo "NFT Types ID:" >> canister_ids.txt 
+          dfx canister id nft_types >> canister_ids.txt || true
+
+          echo "User Types ID:" >> canister_ids.txt 
+          dfx canister id user_types >> canister_ids.txt || true
+
+      # Step 8: Upload Canister IDs as an Artifact (optional)
       - name: Upload Canister IDs Artifact
         uses: actions/upload-artifact@v3
         with:
           name: canister-ids
-          path: canister_ids.txt
+          path: canister_ids.txt  
