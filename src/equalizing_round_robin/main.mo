@@ -15,7 +15,7 @@ import Text "mo:base/Text";
 import Option "mo:base/Option";
 
 actor class EqualizingRoundRobinContract() {
-    // Types
+    // Types and state variables remain the same
     type Participant = {
         id: Principal;
         internetId: Text;
@@ -45,7 +45,6 @@ actor class EqualizingRoundRobinContract() {
         details: Text;
     };
 
-    // State variables
     private stable var contractState: ContractState = #Draft;
     private stable var contractContent: Text = "";
     private stable var contractMetadata: ContractMetadata = {
@@ -59,13 +58,12 @@ actor class EqualizingRoundRobinContract() {
     private stable var owner: Principal = Principal.fromText("aaaaa-aa");
     private stable var randomSeed: Blob = "\00" : Blob;
 
-    // Admin and participant management
     private let participants = HashMap.HashMap<Principal, Participant>(
         10, Principal.equal, Principal.hash
     );
     private let securityLogs = Buffer.Buffer<SecurityLog>(100);
 
-    // Initialization
+    // Contract initialization and management functions remain the same
     public shared({ caller }) func initializeContract(
         content: Text,
         title: Text,
@@ -92,7 +90,6 @@ actor class EqualizingRoundRobinContract() {
         #ok("Contract initialized successfully.");
     };
 
-    // Lightweight initialization
     public shared({ caller }) func initializeSimple(content: Text, required: Nat): async Text {
         contractContent := content;
         requiredParticipants := required;
@@ -101,7 +98,6 @@ actor class EqualizingRoundRobinContract() {
         "Simple contract initialized."
     };
 
-    // Participant management
     public shared({ caller }) func addParticipant(internetId: Text): async Result.Result<Text, Text> {
         if (contractState != #Active) return #err("Contract not active.");
         if (participants.size() >= requiredParticipants) return #err("Participant limit reached.");
@@ -118,7 +114,6 @@ actor class EqualizingRoundRobinContract() {
         #ok("Participant added successfully.");
     };
 
-    // Signing
     public shared({ caller }) func sign(signature: Blob): async Result.Result<Text, Text> {
         switch (participants.get(caller)) {
             case null { return #err("Participant not found."); };
@@ -144,7 +139,6 @@ actor class EqualizingRoundRobinContract() {
         }
     };
 
-    // Randomized participant listing
     public query func getRandomizedParticipants(useSimpleShuffle: Bool): [Text] {
         let participantList = Array.fromIter(participants.entries()).map(func(entry) = entry.1.internetId);
         if (useSimpleShuffle) {
@@ -154,15 +148,14 @@ actor class EqualizingRoundRobinContract() {
         }
     };
 
-    // Circular layout for participants using integer coordinates
     public query func getCircularParticipants(): [(Principal, Int, Int)] {
         let participantArray = Array.fromIter(participants.entries());
         let count = participantArray.size();
         let circularLayout = Buffer.Buffer<(Principal, Int, Int)>(count);
         
         let radius = 100;
+        var i = 0;
         
-        let i = 0;
         while (i < count) {
             let position = i * 360 / count;
             let (x, y) = getCircleCoordinates(position, radius);
@@ -172,13 +165,12 @@ actor class EqualizingRoundRobinContract() {
                     circularLayout.add((id, x, y));
                 };
             };
-            i += 1;
+            i := i + 1;
         };
         
         Buffer.toArray(circularLayout)
     };
 
-    // Helper function to get coordinates on a circle
     private func getCircleCoordinates(angle: Int, radius: Int): (Int, Int) {
         let normalized = angle % 360;
         switch (normalized / 45) {
@@ -194,14 +186,12 @@ actor class EqualizingRoundRobinContract() {
         }
     };
 
-    // Scrambled timestamps
     public query func getScrambledTimestamps(): [(Text, Int)] {
         let participantList = Array.fromIter(participants.entries());
         let scrambledList = shuffleArray(participantList.map(func(entry) = entry.1));
         scrambledList.map(func(participant) = (participant.internetId, Option.get(participant.timestamp, 0)))
     };
 
-    // Metadata and status
     public query func getContractMetadata(): ContractMetadata {
         contractMetadata
     };
@@ -215,27 +205,25 @@ actor class EqualizingRoundRobinContract() {
         }
     };
 
-    // Helper: Check if contract is complete
     private func isContractComplete(): Bool {
         var signedCount = 0;
         for ((_, participant) in participants.entries()) {
-            if (Option.isSome(participant.signature)) signedCount += 1;
+            if (Option.isSome(participant.signature)) signedCount := signedCount + 1;
         };
         signedCount == requiredParticipants
     };
 
-    // Shuffle helpers with corrected loop syntax
+    // Updated shuffle helpers with older variable declaration syntax
     private func shuffleArray(arr: [Text]): [Text] {
         let result = Array.thaw<Text>(arr);
-        let size = result.size();
-        let mut i = size - 1;
+        var i = result.size() - 1;
         
         while (i > 0) {
             let randomIndex = Nat8.toNat(Crypto.hashBlob(#sha256, randomSeed)[0]) % (i + 1);
             let temp = result[i];
             result[i] := result[randomIndex];
             result[randomIndex] := temp;
-            i -= 1;
+            i := i - 1;
         };
         
         Array.freeze(result)
@@ -243,15 +231,14 @@ actor class EqualizingRoundRobinContract() {
 
     private func simpleShuffleArray(arr: [Text]): [Text] {
         let result = Array.thaw<Text>(arr);
-        let size = result.size();
-        let mut i = size - 1;
+        var i = result.size() - 1;
         
         while (i > 0) {
             let randomIndex = Nat8.toNat(Random.blob()[0]) % (i + 1);
             let temp = result[i];
             result[i] := result[randomIndex];
             result[randomIndex] := temp;
-            i -= 1;
+            i := i - 1;
         };
         
         Array.freeze(result)
