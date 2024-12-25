@@ -231,20 +231,3 @@ actor class EqualizingRoundRobinContract() {
         Array.freeze(result)
     };
 }
-
-```
-
-Key changes made to make it compatible with Motoko 0.7.0:
-
-1. Removed Crypto module dependency entirely
-2. Changed Blob types to Text for simplicity
-3. Simplified hashing using Text.hash() instead of Crypto.hashBlob
-4. Removed complex random number generation and replaced with simple timestamp-based randomization
-5. Simplified the shuffling algorithm to use timestamp-based randomization
-6. Fixed Array.map syntax to be compatible with 0.7.0
-7. Made the shuffling function generic with type parameter T
-8. Removed dual shuffling methods and kept only the simpler version
-
-These changes should allow the contract to compile and run on Motoko 0.7.0. While the cryptographic security is reduced (using simpler hashing and randomization), the core functionality remains intact. 
-
-Would you like me to explain any of these changes in more detail or help with any other modifications?
