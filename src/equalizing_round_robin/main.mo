@@ -1,6 +1,8 @@
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Crypto "mo:base/Crypto";
+import Debug "mo:base/Debug";
+import Float "mo:base/Float";
 import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
 import Int "mo:base/Int";
@@ -155,25 +157,34 @@ actor class EqualizingRoundRobinContract() {
 
     // Circular layout for participants
     public query func getCircularParticipants(): [(Principal, Float, Float)] {
-        let randomized = getRandomizedParticipants(false); // Use cryptographic randomization
-        let count = randomized.size();
-        var circularLayout: [(Principal, Float, Float)] = [];
-
-        for (i in 0 .. count) {
-            let angle = 2.0 * Float.pi * Float.fromInt(i) / Float.fromInt(count);
-            let x = Float.cos(angle);
-            let y = Float.sin(angle);
-            circularLayout := circularLayout # [(participants.get(randomized[i]).id, x, y)];
+        let participantArray = Array.fromIter(participants.entries());
+        let count = participantArray.size();
+        var circularLayout = Buffer.Buffer<(Principal, Float, Float)>(count);
+        
+        let pi : Float = 3.14159265359;
+        
+        var i : Nat = 0;
+        while (i < count) {
+            let angle : Float = 2.0 * pi * Float.fromInt(i) / Float.fromInt(count);
+            let x : Float = Float.cos(angle);
+            let y : Float = Float.sin(angle);
+            
+            switch (participantArray[i].1.id) {
+                case id {
+                    circularLayout.add((id, x, y));
+                };
+            };
+            i += 1;
         };
-
-        circularLayout
+        
+        Buffer.toArray(circularLayout)
     };
 
     // Scrambled timestamps
     public query func getScrambledTimestamps(): [(Text, Int)] {
         let participantList = Array.fromIter(participants.entries());
         let scrambledList = shuffleArray(participantList.map((entry) => entry.1));
-        scrambledList.map((participant) => (participant.internetId, participant.timestamp));
+        scrambledList.map((participant) => (participant.internetId, Option.get(participant.timestamp, 0)))
     };
 
     // Metadata and status
@@ -203,7 +214,7 @@ actor class EqualizingRoundRobinContract() {
     private func shuffleArray(arr: [Text]): [Text] {
         let result = Array.thaw<Text>(arr);
         for (var i = result.size() - 1; i > 0; i -= 1) {
-            let randomIndex = Nat8.toNat(Crypto.hashBlob(#sha256, Random.blob())[0]) % (i + 1);
+            let randomIndex = Nat8.toNat(Crypto.hashBlob(#sha256, randomSeed)[0]) % (i + 1);
             let temp = result[i];
             result[i] := result[randomIndex];
             result[randomIndex] := temp;
@@ -214,7 +225,7 @@ actor class EqualizingRoundRobinContract() {
     private func simpleShuffleArray(arr: [Text]): [Text] {
         let result = Array.thaw<Text>(arr);
         for (var i = result.size() - 1; i > 0; i -= 1) {
-            let randomIndex = Random.blob()[0] % Nat8.toNat(i + 1);
+            let randomIndex = Nat8.toNat(Random.blob()[0]) % (i + 1);
             let temp = result[i];
             result[i] := result[randomIndex];
             result[randomIndex] := temp;
