@@ -154,22 +154,17 @@ actor class EqualizingRoundRobinContract() {
         }
     };
 
-    // Circular layout for participants using integer coordinates (0-100 scale)
+    // Circular layout for participants using integer coordinates
     public query func getCircularParticipants(): [(Principal, Int, Int)] {
         let participantArray = Array.fromIter(participants.entries());
         let count = participantArray.size();
         let circularLayout = Buffer.Buffer<(Principal, Int, Int)>(count);
         
-        // Use a 100-unit circle for integer-based coordinates
         let radius = 100;
         
-        var i = 0;
+        let i = 0;
         while (i < count) {
-            // Calculate position on a 100-unit circle
-            // We'll use predefined coordinates for common angles to avoid floating point math
-            let position = i * 360 / count;  // Angle in degrees
-            
-            // Use lookup table for coordinates
+            let position = i * 360 / count;
             let (x, y) = getCircleCoordinates(position, radius);
             
             switch (participantArray[i].1.id) {
@@ -183,21 +178,19 @@ actor class EqualizingRoundRobinContract() {
         Buffer.toArray(circularLayout)
     };
 
-    // Helper function to get coordinates on a circle using integer math
+    // Helper function to get coordinates on a circle
     private func getCircleCoordinates(angle: Int, radius: Int): (Int, Int) {
-        // Simplified coordinate calculation using a lookup table approach
-        // This gives us 8 positions around the circle
         let normalized = angle % 360;
         switch (normalized / 45) {
-            case 0 { (radius, 0) };          // 0 degrees
-            case 1 { (71, 71) };             // 45 degrees
-            case 2 { (0, radius) };          // 90 degrees
-            case 3 { (-71, 71) };            // 135 degrees
-            case 4 { (-radius, 0) };         // 180 degrees
-            case 5 { (-71, -71) };           // 225 degrees
-            case 6 { (0, -radius) };         // 270 degrees
-            case 7 { (71, -71) };            // 315 degrees
-            case _ { (radius, 0) };          // Default case
+            case 0 { (radius, 0) };
+            case 1 { (71, 71) };
+            case 2 { (0, radius) };
+            case 3 { (-71, 71) };
+            case 4 { (-radius, 0) };
+            case 5 { (-71, -71) };
+            case 6 { (0, -radius) };
+            case 7 { (71, -71) };
+            case _ { (radius, 0) };
         }
     };
 
@@ -231,26 +224,36 @@ actor class EqualizingRoundRobinContract() {
         signedCount == requiredParticipants
     };
 
-    // Shuffle helpers
+    // Shuffle helpers with corrected loop syntax
     private func shuffleArray(arr: [Text]): [Text] {
         let result = Array.thaw<Text>(arr);
-        for (var i = result.size() - 1; i > 0; i -= 1) {
+        let size = result.size();
+        let mut i = size - 1;
+        
+        while (i > 0) {
             let randomIndex = Nat8.toNat(Crypto.hashBlob(#sha256, randomSeed)[0]) % (i + 1);
             let temp = result[i];
             result[i] := result[randomIndex];
             result[randomIndex] := temp;
+            i -= 1;
         };
+        
         Array.freeze(result)
     };
 
     private func simpleShuffleArray(arr: [Text]): [Text] {
         let result = Array.thaw<Text>(arr);
-        for (var i = result.size() - 1; i > 0; i -= 1) {
+        let size = result.size();
+        let mut i = size - 1;
+        
+        while (i > 0) {
             let randomIndex = Nat8.toNat(Random.blob()[0]) % (i + 1);
             let temp = result[i];
             result[i] := result[randomIndex];
             result[randomIndex] := temp;
+            i -= 1;
         };
+        
         Array.freeze(result)
     };
 }
