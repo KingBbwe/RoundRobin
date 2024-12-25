@@ -49,13 +49,13 @@ jobs:
       # Step 7: Retrieve Canister IDs and Save to File
       - name: Retrieve Canister IDs
         run: |
-          echo "Round Robin ID:" > canister_ids.txt 
+          echo “Round Robin ID:" > canister_ids.txt 
           dfx canister id main >> canister_ids.txt || true
 
 
-      # Step 8: Upload Canister IDs as an Artifact (optional)
+      # Step 8: Upload Canister IDs as an Artifact using v4 of upload-artifact action
       - name: Upload Canister IDs Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Updated to v4
         with:
           name: canister-ids
           path: canister_ids.txt  
