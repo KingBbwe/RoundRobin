@@ -159,15 +159,15 @@ actor class EqualizingRoundRobinContract() {
     public query func getCircularParticipants(): [(Principal, Float, Float)] {
         let participantArray = Array.fromIter(participants.entries());
         let count = participantArray.size();
-        var circularLayout = Buffer.Buffer<(Principal, Float, Float)>(count);
+        let circularLayout = Buffer.Buffer<(Principal, Float, Float)>(count);
         
-        let pi : Float = 3.14159265359;
+        let pi = 3.14159265359;
         
-        var i : Nat = 0;
+        var i = 0;
         while (i < count) {
-            let angle : Float = 2.0 * pi * Float.fromInt(i) / Float.fromInt(count);
-            let x : Float = Float.cos(angle);
-            let y : Float = Float.sin(angle);
+            let angle = Float.mul(Float.mul(2, pi), Float.div(Float.fromInt(i), Float.fromInt(count)));
+            let x = Float.cos(angle);
+            let y = Float.sin(angle);
             
             switch (participantArray[i].1.id) {
                 case id {
@@ -184,7 +184,9 @@ actor class EqualizingRoundRobinContract() {
     public query func getScrambledTimestamps(): [(Text, Int)] {
         let participantList = Array.fromIter(participants.entries());
         let scrambledList = shuffleArray(participantList.map((entry) => entry.1));
-        scrambledList.map((participant) => (participant.internetId, Option.get(participant.timestamp, 0)))
+        scrambledList.map(func (participant: Participant): (Text, Int) {
+            (participant.internetId, Option.get(participant.timestamp, 0))
+        })
     };
 
     // Metadata and status
